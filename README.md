@@ -13,9 +13,9 @@ Geometry of a Gradissimo fiber...
                          
                  Q0        Q1      Q2       Q3
 
-HS = Homogeneous Space, typically a silica fiber
-GI = Gradient Index Fiber
-OUT = Output Space, typically air
+* HS = Homogeneous Space, typically a silica fiber
+* GI = Gradient Index Fiber
+* OUT = Output Space, typically air
 
 -- 
 Copyright (C) 2016 Olivier Castany
