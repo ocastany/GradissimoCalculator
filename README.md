@@ -3,7 +3,7 @@ GradissimoCalculator
 
 Python code for the calculation of Gradissimo fibers.
 
-Geometry of a Gradissimo fiber...
+Geometry of a Gradissimo fiber:
         
       input_fiber    HS       GI       OUT
         

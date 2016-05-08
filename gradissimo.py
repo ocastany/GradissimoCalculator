@@ -151,27 +151,33 @@ class Beam_HomogeneousSpace(Beam):
     is identical on both sides.
     """
     
-    waist = None        # Gaussian transverse profile at waist
-    zR = None           # Rayleigh distance
-    z0 = None           # waist position
-    divergence = None   # Full divergence angle (1/e²) [rad]
+    waist_position = None   # waist position
+    waist_profile = None    # Gaussian transverse profile at waist
+    zR = None               # Rayleigh range
+    divergence = None       # Full divergence angle (1/e²) [rad]
     
     def set_profile(self, profile):
         """Defines the profile of the Gaussian beam"""
         self.profile = profile
-        waist = GaussianProfile(1j * profile.Q.imag)
-        self.waist = waist
+        waist_profile = GaussianProfile(1j * profile.Q.imag)
+        self.waist_profile = waist_profile
         n = self.space.n
         q = profile.Q * n
         self.zR = q.imag
-        self.z0 = -q.real
-        self.divergence = 2 * lbda0 / (pi * n * waist.w)
+        self.waist_position = -q.real
+        self.divergence = 2 * lbda0 / (pi * n * waist_profile.w)
     
     def get_Q(self, z):
         """Return Q value at position 'z'."""
         return self.profile.Q + z/self.space.n
 
-
+    def plot(self, z1=0.0, z2=0.0):
+        """Plot beam waist."""
+        pyplot.figure()
+        pyplot.axvline(0)
+        pyplot.axhline(0)
+        (Z, W) = self.evolution(z1, z2)
+        pyplot.plot(Z, W)
 
 
 class Beam_GradientIndex(Beam):
@@ -334,7 +340,7 @@ class Propagator:
 class Gradissimo:
     """Gradissimo fiber
     
-    Geometry of a Gradissimo fiber...
+    Geometry of a Gradissimo fiber:
                         
             
           input_fiber    HS       GI       OUT
@@ -344,12 +350,21 @@ class Gradissimo:
         ‾‾‾‾‾‾‾‾‾‾‾‾‾          |       |       
                              
                      Q0        Q1      Q2       Q3
+
+    Available attributes...
+    - Reduced Gaussian parameters : Q0, Q1, Q2, Q3
+    - Section lengths : L_HS, L_GI, L_OUT
+    - Beams : beam_HS, beam_GI, beam_OUT
     """
     
     input_fiber = None      # SingleModeFiber
     HS = None               # HomogeneousSpace
     GI = None               # GradientIndexFiber
     OUT = None              # HomogeneousSpace
+
+    Q0 = Q1 = Q2 = Q3 = None
+    L_HS = L_GI = L_OUT = None
+    beam_HS = beam_GI = beam_OUT = None
 
     def __init__(self, input_fiber, HS, GI, OUT):
         """Create a Gradissimo fiber"""
@@ -375,8 +390,8 @@ class Gradissimo:
         # self.Q2 = self.GI.propagate(self.Q1, L_GI)
         
         self.beam_OUT = self.OUT.beam(self.Q2)
-        self.L_OUT = self.beam_OUT.z0
-        self.Q3 = self.beam_OUT.waist.Q
+        self.L_OUT = self.beam_OUT.waist_position
+        self.Q3 = self.beam_OUT.waist_profile.Q
         # Equivalent to
         # self.Q3 = self.OUT.propagate(self.Q2, self.L_OUT)
         
@@ -407,7 +422,7 @@ class Gradissimo:
         
         # Find the length of the HS segment...
         self.beam_HS = self.HS.beam(self.Q1)
-        z0 = self.beam_HS.z0
+        z0 = self.beam_HS.waist_position
         self.beam_HS.change_origin(z0)
         self.L_HS = -z0
         
