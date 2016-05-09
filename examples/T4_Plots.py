@@ -3,11 +3,11 @@
 
 from gradissimo import *
 
-# Study of Gradissimo fibers
+# Study of Gradissimo fibers.
 # Parameters of the GI fiber are taken from table 4 in this article:
 # M. Thual, Opt. Eng., 46(1), p. 015402 (2007)
 
-# Define the materials
+# Define the waveength and the materials
 set_wavelength(1.55e-6)
 n_fiber = 1.44
 n_out = 1.00    
@@ -27,13 +27,13 @@ for (i, L_HS) in enumerate(L_HS_list):
     data_list.append([])
     for L_GI in L_GI_list:
         G.set_geometry(L_HS*1e-6, L_GI*1e-6)
-        waist = 2 * G.beam_OUT.waist.w * 1e6
-        wd = G.beam_OUT.z0 * 1e6
+        waist = 2 * G.beam_OUT.waist_profile.w * 1e6
+        wd = G.beam_OUT.waist_position * 1e6
         data_list[i].append([waist, wd])
 
 data = numpy.array(data_list)
 
-# Make the plots
+# Trace the plots
 pyplot.figure()
 pyplot.title("Waist diameter versus GRIN length")
 for (i, L_HS) in enumerate(L_HS_list):
