@@ -7,7 +7,7 @@ from gradissimo import *
 # Parameters of the GI fiber are taken from table 4 in this article:
 # M. Thual, Opt. Eng., 46(1), p. 015402 (2007)
 
-# Define the waveength and the materials
+# Define the wavelength and the materials
 set_wavelength(1.55e-6)
 n_fiber = 1.44
 n_out = 1.00    
@@ -16,9 +16,10 @@ HS = HomogeneousSpace(n_fiber)
 GI = GradientIndexFiber(n_fiber, gamma=4117, diam=85e-6)
 OUT = HomogeneousSpace(n_out)
 
-# Gradissimo with given segment length...
+# Gradissimo fiber structure...
 G = Gradissimo(input_fiber, HS, GI, OUT)
 
+# Segment lengths to be used
 L_HS_list = [0, 200, 400]
 L_GI_list = linspace(0, 800, num=100)
 
