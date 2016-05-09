@@ -18,7 +18,8 @@ def set_wavelength(lbda):
     """Set the vacuum wavelength for subsequent calculations"""
     global lbda0
     lbda0 = lbda
-      
+
+
 class GaussianProfile:
     """Description of a Gaussian profile.
     
@@ -30,27 +31,30 @@ class GaussianProfile:
     
     With    a = ik0/(2 Q) = iπ/(λ0 Q)
             1/Q = C - iλ0/(πw²)
-            
+    
+    Q : reduced Gaussian parameter
+    w : radius at 1/e² intensity [m]
+    C : reduced curvature [m⁻¹]
+    a : Gaussian coefficient
+
     Note : 
     * reduced curvature C is positive when center is on the left.
     * if the profile is at the boundary between two different materials,
       all the quantities mentioned above (a, Q, w and C) are conserved.
     """
     
-    a = None    # Gaussian coefficient
     Q = None    # Reduced Gaussian parameter
     w = None    # Radius at 1/e² intensity
     C = None    # Reduced curvature [m⁻¹]
+    a = None    # Gaussian coefficient
     
-    def __init__(self, Q=None, q=None, w=None, C=0.0, a=None):
+    def __init__(self, Q=None, w=None, C=0.0, a=None):
         """Create a Gaussian profile.
         
         Data may be a Numpy array.
         """
         if Q is not None:
             self.set_ReducedGaussianParameter(Q)
-        elif q is not None:
-            self.set_GaussianParameter(q)
         elif w is not None:
             self.set_Geometry(w, C)
         elif a is not None:
@@ -96,13 +100,23 @@ class Beam:
     space = None        # Space in which the beam propagates
     profile = None      # Gaussian transverse profile at reference plane
     
-    def __init__(self, profile=None, space=None):
+    def __init__(self, space=None, profile=None):
         """Creates a beam for the given profile and space."""
-        self.space = space
+        self.set_space(space)
         self.set_profile(profile)
+
+    def set_space(self, space):
+        """Defines the space in which the beam propagates."""
+        self.space = space
 
     def set_profile(self, profile):
         """Defines the reference profile of the Beam."""
+        self.profile = profile
+        if profile.Q is not None:
+            self.set_beam()
+
+    def set_beam(self):
+        """Setup the beam, based on space and reference profile."""
         raise NotImplementedError("Should be implemented in derived classes")
             
     def get_Q(self, z):
@@ -156,16 +170,14 @@ class Beam_HomogeneousSpace(Beam):
     zR = None               # Rayleigh range
     divergence = None       # Full divergence angle (1/e²) [rad]
     
-    def set_profile(self, profile):
-        """Defines the profile of the Gaussian beam"""
-        self.profile = profile
-        waist_profile = GaussianProfile(1j * profile.Q.imag)
-        self.waist_profile = waist_profile
+    def set_beam(self):
+        """Build the Gaussian beam"""
         n = self.space.n
-        q = profile.Q * n
+        q = self.profile.Q * n
         self.zR = q.imag
+        self.waist_profile = GaussianProfile(1j * self.profile.Q.imag)
         self.waist_position = -q.real
-        self.divergence = 2 * lbda0 / (pi * n * waist_profile.w)
+        self.divergence = 2 * lbda0 / (pi * n * self.waist_profile.w)
     
     def get_Q(self, z):
         """Return Q value at position 'z'."""
@@ -195,12 +207,11 @@ class Beam_GradientIndex(Beam):
     theta = None        # Complex angle, reference for the oscillating beam
                         # We have Im(theta) != 0 because Im(Q) != 0
                         
-    def set_profile(self, profile):
-        """Define the input profile"""
-        self.profile = profile
+    def set_beam(self):
+        """Build the GI beam"""
         g = self.space.gamma
         n = self.space.n
-        theta = arctan(g * n * profile.Q)
+        theta = arctan(g * n * self.profile.Q)
         self.theta = theta
         self.w_min = GaussianProfile(1j/(n*g) * tanh(theta.imag)).w
         self.w_max = self.w_min/tanh(theta.imag)
@@ -252,10 +263,9 @@ class HomogeneousSpace:
         """
         return Q + L/self.n
         
-    def beam(self, Q):
+    def beam(self, Q=None):
         """Return a GaussianBeam"""
-        return Beam_HomogeneousSpace(GaussianProfile(Q), self)
-
+        return Beam_HomogeneousSpace(self, GaussianProfile(Q))
 
     
 class GradientIndexFiber:
@@ -292,9 +302,9 @@ class GradientIndexFiber:
         n = self.n
         return 1/n*self.propagator(L).propagate(Q*n)
 
-    def beam(self, Q):
+    def beam(self, Q=None):
         """Return a Gradient Index Beam"""
-        return Beam_GradientIndex(GaussianProfile(Q), self)
+        return Beam_GradientIndex(self, GaussianProfile(Q))
         
             
     
@@ -343,13 +353,13 @@ class Gradissimo:
     Geometry of a Gradissimo fiber:
                         
             
-          input_fiber    HS       GI       OUT
-            
-        _____________          |       |         
-                     |  L_HS   | L_GI  |  L_OUT |   
-        ‾‾‾‾‾‾‾‾‾‾‾‾‾          |       |       
-                             
-                     Q0        Q1      Q2       Q3
+          input_fiber    HS       GI         OUT
+        ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁    
+        ▁▁▁▁▁▁▁▁▁▁▁▁▁          |         |         
+                     |  L_HS   |  L_GI   |   L_OUT |   
+        ▔▔▔▔▔▔▔▔▔▔▔▔▔          |         |       
+        ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔                     
+                     Q0        Q1        Q2       Q3
 
     Available attributes...
     - Reduced Gaussian parameters : Q0, Q1, Q2, Q3
@@ -396,12 +406,15 @@ class Gradissimo:
         # self.Q3 = self.OUT.propagate(self.Q2, self.L_OUT)
         
         
-    def adjust_geometry(self, w3, L_OUT, oscillations=0):
+    def adjust_geometry(self, w_OUT, L_OUT, oscillations=0):
         """Determine the lengths of the 'GI' and 'HS' segments.
-        
+       
+        'L_OUT' : position of the output waist
+        'w_OUT' : radius at output waist position
+
         'oscillations' : number of half period to add.
         """
-        self.Q3 = GaussianProfile(w=w3).Q
+        self.Q3 = GaussianProfile(w=w_OUT).Q
         self.L_OUT = L_OUT
       
         self.beam_OUT = self.OUT.beam(self.Q3)
@@ -428,7 +441,10 @@ class Gradissimo:
         
     
     def plot(self):
-        """Plot beam waist."""
+        """Plot the beam waist along the gradissimo fiber.
+        
+        If needed, use pyplot.show() to show the plot.
+        """
         pyplot.figure()
         pyplot.axvline(0)
         pyplot.axhline(0)
