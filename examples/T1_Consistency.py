@@ -34,9 +34,15 @@ G2.adjust_geometry(w_OUT, L_OUT, oscillations=1)
 G2.plot()
 # An oscillation in the GI fiber was added in order to recover the right length
 
+# Or in another way...
+G3 = Gradissimo(input_fiber, HS, GI, OUT)
+G3.adjust_geometry(Q2=G1.Q2, oscillations=1)
+G3.plot()
+
 print("The following values should be identical for G1 and G2...")
 print("G1 values: L_HS = {:.6f}, L_GI = {:.6f}".format(G1.L_HS, G1.L_GI))
 print("G2 values: L_HS = {:.6f}, L_GI = {:.6f}".format(G2.L_HS, G2.L_GI))
+print("G3 values: L_HS = {:.6f}, L_GI = {:.6f}".format(G3.L_HS, G3.L_GI))
 
 # The two graphs that were plotted should be identical
 pyplot.show()
