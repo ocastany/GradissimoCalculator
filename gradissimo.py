@@ -168,7 +168,7 @@ class Beam_HomogeneousSpace(Beam):
     waist_position = None   # waist position
     waist_profile = None    # Gaussian transverse profile at waist
     zR = None               # Rayleigh range
-    divergence = None       # Full divergence angle (1/e²) [rad]
+    divergence = None       # Half divergence angle (1/e²) [rad]
     
     def set_beam(self):
         """Build the Gaussian beam"""
@@ -177,7 +177,7 @@ class Beam_HomogeneousSpace(Beam):
         self.zR = q.imag
         self.waist_profile = GaussianProfile(1j * self.profile.Q.imag)
         self.waist_position = -q.real
-        self.divergence = 2 * lbda0 / (pi * n * self.waist_profile.w)
+        self.divergence = lbda0 / (pi * n * self.waist_profile.w)
     
     def get_Q(self, z):
         """Return Q value at position 'z'."""
@@ -406,22 +406,30 @@ class Gradissimo:
         # self.Q3 = self.OUT.propagate(self.Q2, self.L_OUT)
         
         
-    def adjust_geometry(self, w_OUT, L_OUT, oscillations=0):
+    def adjust_geometry(self, w_OUT=None, L_OUT=None, Q2=None, oscillations=0):
         """Determine the lengths of the 'GI' and 'HS' segments.
        
         'L_OUT' : position of the output waist
         'w_OUT' : radius at output waist position
 
+        'Q2' : reduced gaussian parameter
+               (can be provided instead of L_OUT and w_OUT)
+
         'oscillations' : number of half period to add.
         """
-        self.Q3 = GaussianProfile(w=w_OUT).Q
-        self.L_OUT = L_OUT
-      
-        self.beam_OUT = self.OUT.beam(self.Q3)
-        self.beam_OUT.change_origin(-L_OUT)
-        self.Q2 = self.beam_OUT.profile.Q
-        # Equivalent to
-        # self.Q2 = self.OUT.propagate(self.Q3, -L_OUT)
+        if Q2 is not None:
+            self.Q2 = Q2
+            self.beam_OUT = self.OUT.beam(Q2)
+            self.L_OUT = self.beam_OUT.waist_position
+            self.Q3 = self.beam_OUT.waist_profile.Q
+        else:
+            self.Q3 = GaussianProfile(w=w_OUT).Q
+            self.L_OUT = L_OUT
+            self.beam_OUT = self.OUT.beam(self.Q3)
+            self.beam_OUT.change_origin(-L_OUT)
+            self.Q2 = self.beam_OUT.profile.Q
+            # Equivalent to
+            # self.Q2 = self.OUT.propagate(self.Q3, -L_OUT)
         
         # Find the length of the GI segment...
         self.beam_GI = self.GI.beam(self.Q2)
