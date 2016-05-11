@@ -46,7 +46,7 @@ data = numpy.array(data_list)
 
 # Trace the plots
 pyplot.figure()
-pyplot.title("Waist diameter for various silica length (L_HS)")
+pyplot.title("Waist diameter for various lengths of silica (L_HS)")
 for (i, L_HS) in enumerate(L_HS_list):
     pyplot.plot(L_GI_list, data[i,:,0], label="L_HS = {:} µm".format(L_HS))
 pyplot.xlabel("Gradient index segment length (GI 85/125) (µm)")
@@ -54,7 +54,7 @@ pyplot.ylabel("Waist diameter (µm)")
 pyplot.legend()
 
 pyplot.figure()
-pyplot.title("Working distance for various silica length (L_HS)")
+pyplot.title("Working distance for various lengths of silica (L_HS)")
 for (i, L_HS) in enumerate(L_HS_list):
     pyplot.plot(L_GI_list, data[i,:,1], label="L_HS = {:} µm".format(L_HS))
 pyplot.xlabel("Gradient index segment length (GI 85/125) (µm)")
