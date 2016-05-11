@@ -3,7 +3,7 @@ GradissimoCalculator
 
 Python code for the calculation of Gradissimo fibers.
 
-Geometry of a Gradissimo fiber:
+Geometry of a Gradissimo fiber is the following...
         
       input_fiber    HS       GI       OUT
         
@@ -16,6 +16,13 @@ Geometry of a Gradissimo fiber:
 * HS = Homogeneous Space, typically a silica fiber
 * GI = Gradient Index Fiber
 * OUT = Output Space, typically air
+
+--
+As an example, file `T4_Plots.py` reproduces figures 5 and 6 from [this reference][1].
+
+![Reproducing figure 5 from reference 1](examples/figure/ref_1_figure_5.png)
+
+[1]: https://www.osapublishing.org/jlt/abstract.cfm?uri=jlt-17-5-924
 
 -- 
 Copyright (C) 2016 Olivier Castany
