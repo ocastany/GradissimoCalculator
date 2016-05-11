@@ -469,21 +469,3 @@ class Gradissimo:
     
 
 
-##############################################################################
-# Paramètres pour reproduire les graphiques de Monique Thual.
-# Dans le brevet, on lit P/4 = 365 µm et sur sa présentation on lit que la 
-# fibre est une 85/125 µm
-
-"""
-lbda0 = 1.3e-6
-gamma = 2*pi/(4*365e-6)        # Dans le brevet, on lit P/4 = 365 µm
-w0 = 1./2 * 9.2e-6             # 
-L = r_[0, 200, 400]*1e-6       # Longueur de silice
-L.shape = (1,3)
-z = linspace(0,700e-6).reshape((-1,1))
-
-figure("w"); plot(z,2*w)
-figure("d"); plot(z,2*d); ylim(ymin=0)
-# On retrouve bien les graphiques de Monique Thual (pdf de mars 2006)
-# Voir aussi l'artice de 2007 avec les modes gaussiens tronqués.
-"""
