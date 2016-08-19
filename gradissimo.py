@@ -135,7 +135,7 @@ class Beam:
         """Return (z,w) evolution."""
         Z = linspace(z1,z2)
         W = self.get_profile(Z).w
-        return (Z,W)
+        return numpy.array([Z,W])
 
     
 class Beam_HomogeneousSpace(Beam):
@@ -186,9 +186,12 @@ class Beam_HomogeneousSpace(Beam):
     def plot(self, z1=0.0, z2=0.0):
         """Plot beam waist."""
         pyplot.figure()
+        pyplot.title("Beam waist radius in homogeneous space")
         pyplot.axvline(0)
         pyplot.axhline(0)
-        (Z, W) = self.evolution(z1, z2)
+        pyplot.xlabel("z (um)")
+        pyplot.ylabel("w (um)")
+        (Z, W) = self.evolution(z1, z2)*1e6
         pyplot.plot(Z, W)
 
 
@@ -206,7 +209,8 @@ class Beam_GradientIndex(Beam):
     
     theta = None        # Complex angle, reference for the oscillating beam
                         # We have Im(theta) != 0 because Im(Q) != 0
-                        
+    w_min = w_max = None
+
     def set_beam(self):
         """Build the GI beam"""
         g = self.space.gamma
@@ -454,18 +458,23 @@ class Gradissimo:
         If needed, use pyplot.show() to show the plot.
         """
         pyplot.figure()
+        pyplot.title("Gradissimo beam waist radius")
         pyplot.axvline(0)
         pyplot.axhline(0)
-        (Z1, W1) = self.beam_HS.evolution(0, self.L_HS)
+        pyplot.xlabel("z (um)")
+        pyplot.ylabel("w (um)")
+        L_HS = self.L_HS * 1e6
+        L_GI = self.L_GI * 1e6
+        (Z1, W1) = self.beam_HS.evolution(0, self.L_HS)*1e6
         pyplot.plot(Z1, W1)
-        pyplot.axvline(self.L_HS)
-        (Z2, W2) = self.beam_GI.evolution(0, self.L_GI)
-        pyplot.plot(self.L_HS + Z2, W2)
+        pyplot.axvline(L_HS)
+        (Z2, W2) = self.beam_GI.evolution(0, self.L_GI)*1e6
+        pyplot.plot(L_HS + Z2, W2)
         if self.GI.diam is not None:
-            pyplot.axhline(self.GI.diam/2)
-        pyplot.axvline(self.L_HS+self.L_GI)
-        (Z3, W3) = self.beam_OUT.evolution(0, self.L_GI)
-        pyplot.plot(self.L_HS + self.L_GI + Z3, W3)
+            pyplot.axhline(self.GI.diam/2 * 1e6)
+        pyplot.axvline(L_HS+L_GI)
+        (Z3, W3) = self.beam_OUT.evolution(0, self.L_GI)*1e6
+        pyplot.plot(L_HS + L_GI + Z3, W3)
     
 
 

@@ -25,6 +25,9 @@ As an example, file `T4_Plots.py` reproduces figures 5 and 6 from [this referenc
 [1]: https://www.osapublishing.org/jlt/abstract.cfm?uri=jlt-17-5-924
 
 -- 
+The project can be download with `git clone git://github.com/ocastany/GradissimoCalculator.git`.
+
+--
 Copyright (C) 2016 Olivier Castany
 
 This program is free software: you can redistribute it and/or modify
