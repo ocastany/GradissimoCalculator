@@ -8,9 +8,9 @@ Geometry of a Gradissimo fiber is the following...
           input_fiber    HS       GI         OUT
         _________________________________
         _____________          |         |         
-        _____________|  L_HS   |  L_GI   |   L_OUT |   
-        _______________________|_________|       
-        
+                     |  L_HS   |  L_GI   |   L_OUT |   
+        -------------          |         |       
+        ---------------------------------
                      Q0        Q1        Q2       Q3
 
 * HS = Homogeneous Space, typically a silica fiber
