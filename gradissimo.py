@@ -21,26 +21,28 @@ def set_wavelength(lbda):
 
 
 class GaussianProfile:
-    """Description of a Gaussian profile.
+    """Description of a Gaussian profile in a transverse plane.
     
-    The field amplitude of a Gaussian profile is 
+    The field amplitude of a Gaussian profile is proportional to
     
-    E(r) = exp(-a r²) 
-            = exp(-ik0 r²/(2Q))
-            = exp(-ik0 C r²/2 - r²/w²)
+    E(r) = exp(-a r²) = exp(-ik0 r²/(2Q)) = exp(-ik0 C r²/2 - r²/w²)
     
     With    a = ik0/(2 Q) = iπ/(λ0 Q)
             1/Q = C - iλ0/(πw²)
     
+    k0 = 2π / λ0
     Q : reduced Gaussian parameter
     w : radius at 1/e² intensity [m]
     C : reduced curvature [m⁻¹]
     a : Gaussian coefficient
 
     Note : 
-    * reduced curvature C is positive when center is on the left.
-    * if the profile is at the boundary between two different materials,
-      all the quantities mentioned above (a, Q, w and C) are conserved.
+    * If that profile is in a homogeneous medium of index n, the reduced
+      curvature C is connected to the radius of curvature R of the wavefront 
+      by C = n/R (see class BeamInHomogeneousSpace)
+    * The reduced curvature C is positive when center is on the left.
+    * If the profile is at a boundary between two different materials,
+      all the quantities "a", "Q", "w" and "C" are conserved.
     """
     
     Q = None    # Reduced Gaussian parameter
@@ -51,7 +53,7 @@ class GaussianProfile:
     def __init__(self, Q=None, w=None, C=0.0, a=None):
         """Create a Gaussian profile.
         
-        Data may be a Numpy array.
+        Give either "Q", "w" or "a" (possibly as a Numpy array).
         """
         if Q is not None:
             self.set_ReducedGaussianParameter(Q)
@@ -95,18 +97,18 @@ class GaussianProfile:
 
 
 class Beam:
-    """Beam abstract class"""
+    """Abstract class for a gaussian beam."""
     
     space = None        # Space in which the beam propagates
     profile = None      # Gaussian transverse profile at reference plane
     
     def __init__(self, space=None, profile=None):
-        """Creates a beam for the given profile and space."""
+        """Creates a Beam with the given profile in the given space."""
         self.set_space(space)
         self.set_profile(profile)
 
     def set_space(self, space):
-        """Defines the space in which the beam propagates."""
+        """Defines the space in which the Beam propagates."""
         self.space = space
 
     def set_profile(self, profile):
@@ -132,18 +134,26 @@ class Beam:
         self.set_profile(self.get_profile(z))
         
     def evolution(self, z1=0.0, z2=0.0):
-        """Return (z,w) evolution."""
+        """Return the evolution of w as a function of z.
+        
+        Returns : [Z,W] 
+        where Z = linspace(z1,z2) and W contains the corresponding waist.
+        """
         Z = linspace(z1,z2)
         W = self.get_profile(Z).w
         return numpy.array([Z,W])
 
     
-class Beam_HomogeneousSpace(Beam):
+class BeamInHomogeneousSpace(Beam):
     """Gaussian beam in a homogeneous material of refractive index 'n'.
 
     In a homogeneous material, the profile is characterized by the 
-    Gaussian parameter 'q'
+    Gaussian parameter 'q'. The paraxial propagation is
+        
+        E(z,r) = exp(-ikz) exp(-ikr²/(2 q(z)))    
     
+    with the propagation law q(z) = q(0) + z.
+   
     E(r) = exp(-a r²) 
          = exp(-ik0 r²/(2Q))
          = exp(-ik r²/(2q))
@@ -155,12 +165,6 @@ class Beam_HomogeneousSpace(Beam):
     
     R is the radius of curvature (positive when center is on the left)
             
-    The paraxial propagation of a Gaussian beam is
-    
-    E(z,r) = exp(-ikz) exp(-ikr²/(2 q(z))) 
-           
-    with the propagation law q(z) = q(0) + z
-    
     At a material interface between homogeneous materials, the quantity Q = q/n
     is identical on both sides.
     """
@@ -195,14 +199,19 @@ class Beam_HomogeneousSpace(Beam):
         pyplot.plot(Z, W)
 
 
-class Beam_GradientIndex(Beam):
+class BeamInGradientIndex(Beam):
     """Beam in a gradient index fiber
     
-    Q(z) = 1/(n g) tan(gz + theta)
+    A gradient index fiber has a refractive index profile like
+        n(r) = n₀(1 - A/2 r²)
+  
+    If we define g ≡ √(A), the evolution of a beam is
+        Q(z) = 1/(n g) tan(gz + theta)
     
+    Spatial pulsation of a ray : g
     Spatial period for ray : P = 2 pi/g
     Spatial period for Gaussian beam : P/2 = pi/g
-    
+   
     Im(Q(z)) = 1/(n g) sh(θ") ch(θ") / (cos²(gz+θ') + sh²(θ"))
     C = Re(1/Q(z)) = n g (sin(gz+θ') cos(gz+θ')) / (sin²(gz+θ') + sh²(θ"))
     """
@@ -269,7 +278,7 @@ class HomogeneousSpace:
         
     def beam(self, Q=None):
         """Return a GaussianBeam"""
-        return Beam_HomogeneousSpace(self, GaussianProfile(Q))
+        return BeamInHomogeneousSpace(self, GaussianProfile(Q))
 
     
 class GradientIndexFiber:
@@ -308,7 +317,7 @@ class GradientIndexFiber:
 
     def beam(self, Q=None):
         """Return a Gradient Index Beam"""
-        return Beam_GradientIndex(self, GaussianProfile(Q))
+        return BeamInGradientIndex(self, GaussianProfile(Q))
         
             
     
