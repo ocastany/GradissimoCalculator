@@ -4,6 +4,10 @@
 """
 Calculation with Gaussian beams
 Application to Gradissimo fiber 
+
+Usage: 
+- gradissimo.set_wavelength(1.55e-6)    # sets the working condition
+- define a GaussianProfile and a Space, and play with them.
 """
 
 import numpy, cmath
@@ -12,7 +16,8 @@ from numpy import arctan, tan, linspace
 from scipy import optimize
 import matplotlib.pyplot as pyplot
 
-lbda0 = 1.31e-6     # Wavelength in vacuum
+lbda0 = None     # Wavelength in vacuum, for example 1.31e-6 m
+n0 = 1.45        # Refractive index of silica 
 
 def set_wavelength(lbda):
     """Set the vacuum wavelength for subsequent calculations"""
@@ -103,16 +108,16 @@ class Beam:
     profile = None      # Gaussian transverse profile at reference plane
     
     def __init__(self, space=None, profile=None):
-        """Creates a Beam with the given profile in the given space."""
+        """Creates a Beam with the given GaussianProfile in the given Space."""
         self.set_space(space)
         self.set_profile(profile)
 
     def set_space(self, space):
-        """Defines the space in which the Beam propagates."""
+        """Defines the Space in which the Beam propagates."""
         self.space = space
 
     def set_profile(self, profile):
-        """Defines the reference profile of the Beam."""
+        """Defines the reference GaussianProfile of the Beam."""
         self.profile = profile
         if profile.Q is not None:
             self.set_beam()
@@ -126,7 +131,7 @@ class Beam:
         raise NotImplementedError("Should be implemented in derived classes")
 
     def get_profile(self, z):
-        """Return Gaussian profile at position 'z'."""
+        """Return GaussianProfile at position 'z'."""
         return GaussianProfile(self.get_Q(z))        
 
     def change_origin(self, z):
@@ -252,13 +257,28 @@ class BeamInGradientIndex(Beam):
         z = (arccos(cosine) - theta.real + steps*pi) / g
         return z
                 
+
+class Space:
+    """Abstract class for a propagation space"""
+
+    def propagator(self, L):
+        """Returns propagator for length L."""
+        raise NotImplementedError("Should be implemented in derived classes")
         
-class HomogeneousSpace:
+    def propagate(self, Q, L):
+        """Propagates GaussianProfile Q over length L."""
+        raise NotImplementedError("Should be implemented in derived classes")
+        
+    def beam(self, Q=None):
+        """Returns a GaussianBeam defined by a GaussianProfile."""
+        raise NotImplementedError("Should be implemented in derived classes")
+        
+class HomogeneousSpace(Space):
     """A homogeneous space of refractive index 'n'."""
     
     n = None        # refractive index of the material
     
-    def __init__(self, n=1.0):
+    def __init__(self, n=n0):
         """Defines a homogeneous space of index n."""
         self.n = n
 
@@ -272,7 +292,7 @@ class HomogeneousSpace:
     def propagate(self, Q, L):
         """Propagate over length L.
         
-        Q : GaussianProfile to propagate
+        Q : reduced Gaussian parameter of the GaussianProfile to propagate
         """
         return Q + L/self.n
         
@@ -281,11 +301,11 @@ class HomogeneousSpace:
         return BeamInHomogeneousSpace(self, GaussianProfile(Q))
 
     
-class GradientIndexFiber:
+class GradientIndexFiber(Space):
     """MultiMode Fiber"""
     
     # MMF fiber parameters    
-    n = 1.44
+    n = n0
     gamma = 5.7e3       # spatial pulsation [m⁻¹]
     diam = 62.5e-6      # core diameter     
     
@@ -294,7 +314,7 @@ class GradientIndexFiber:
     # Typical value, P/2 = 550 µm
 
     
-    def __init__(self, n=1.0, gamma=5.7e3, diam=None):
+    def __init__(self, n=n0, gamma=5.7e3, diam=None):
         """Defines a MMF"""
         self.n = n
         self.gamma = gamma
@@ -328,7 +348,7 @@ class SingleModeFiber:
     w = None            # mode radius 1/e² [m]
     profile = None      # Gaussian profile of the mode
  
-    def __init__(self, w=5.2e-6, n=1.44):
+    def __init__(self, w=5.2e-6, n=n0):
         """Create a single mode fiber with given waist.
         
         'w' : mode radius (1/e²) [m]
