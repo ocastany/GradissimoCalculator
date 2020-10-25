@@ -2,22 +2,23 @@
 # encoding: utf-8
 
 """
-Calculation with Gaussian beams
-Application to Gradissimo fiber 
+Module for calculation of Gaussian beams.
+Application to Gradissimo fibers. 
 
-Usage: 
-- gradissimo.set_wavelength(1.55e-6)    # sets the working condition
-- define a GaussianProfile and a Space, and play with them.
+Usage: see at the bottom of this page.
 """
 
 import numpy, cmath
 from numpy import pi, inf, sqrt, cos, sin, sinh, cosh, tanh, arccos 
 from numpy import arctan, tan, linspace
 from scipy import optimize
-import matplotlib.pyplot as pyplot
+from matplotlib import pyplot
 
-lbda0 = None     # Wavelength in vacuum, for example 1.31e-6 m
-n0 = 1.45        # Refractive index of silica 
+lbda0 = None    # Wavelength in vacuum, for example 1.31e-6 m
+                # Set to None, so that the user does not forget to set it.
+n0 = 1.45       # Refractive indices of silica / silicon
+                # 1.31 µm : 1.447 / 3.500
+                # 1.55 µm : 1.444 / 3.476
 
 def set_wavelength(lbda):
     """Set the vacuum wavelength for subsequent calculations"""
@@ -39,21 +40,22 @@ class GaussianProfile:
     Q : reduced Gaussian parameter
     w : radius at 1/e² intensity [m]
     C : reduced curvature [m⁻¹]
-    a : Gaussian coefficient
+    a : coefficient of the Gaussian
 
     Note : 
-    * If that profile is in a homogeneous medium of index n, the reduced
+    * If that profile belongs to a homogeneous medium of index n, the reduced
       curvature C is connected to the radius of curvature R of the wavefront 
-      by C = n/R (see class BeamInHomogeneousSpace)
-    * The reduced curvature C is positive when center is on the left.
+      by C = n/R (see the class BeamInHomogeneousSpace)
+    * The reduced curvature C is positive when the center is on the left.
     * If the profile is at a boundary between two different materials,
       all the quantities "a", "Q", "w" and "C" are conserved.
+    * The values may be numbers or arrays of numbers.
     """
-    
+
     Q = None    # Reduced Gaussian parameter
     w = None    # Radius at 1/e² intensity
     C = None    # Reduced curvature [m⁻¹]
-    a = None    # Gaussian coefficient
+    a = None    # Gaussian coefficient    
     
     def __init__(self, Q=None, w=None, C=0.0, a=None):
         """Create a Gaussian profile.
@@ -72,40 +74,50 @@ class GaussianProfile:
         
         E(r) = exp(-a r²)
         """
+        self.Q = Q = 1j*pi / (lbda0 * a)
+        self.w = sqrt(-lbda0/(pi* (1/Q).imag))
+        self.C = (1/Q).real
         self.a = a
-        self.Q = 1j*pi / (lbda0 * a)
-        self._calculate_geometry(self.Q)
     
     def set_ReducedGaussianParameter(self, Q):
         """Define profile by Reduced Gaussian parameter 'Q'.
         
         E(r) = exp(-ik0 r²/(2Q))
         """
-        self.a = 1j*pi / (lbda0 * Q)
         self.Q = Q
-        self._calculate_geometry(self.Q)
+        self.w = sqrt(-lbda0/(pi* (1/Q).imag))
+        self.C = (1/Q).real
+        self.a = 1j*pi / (lbda0 * Q)
 
     def set_Geometry(self, w, C):
         """Define profile by waist 'w' and reduced curvature 'C'.
         
         E(r) = exp(-ik0 C r²/2 - r²/w²)
         """
+        self.Q = 1 / (C - 1j*lbda0/(pi * w**2))
         self.w = w
         self.C = C
-        self.Q = 1 / (C - 1j*lbda0/(pi * w**2))
         self.a = 1j*pi / (lbda0 * self.Q)
         
-    def _calculate_geometry(self, Q):
-        """Calculate w and C from Q."""
-        self.w = sqrt(-lbda0/(pi* (1/Q).imag))
-        self.C = (1/Q).real
+    def propagate(self, s, L):
+        """Propagate this profile in space 's' over length 'L'."""
+        return s.propagate(self, L)
+
+    def transform(self, oe):
+        """Transform profile through OpticalElement 'oe'."""
+        return oe.transform(self)
+
+    def beam(self, s):
+        """Return the beam created by this profile in space 's'."""
+        return s.beam(self)
 
 
 class Beam:
-    """Abstract class for a gaussian beam."""
+    """Abstract class for a gaussian beam in a certain space."""
     
-    space = None        # Space in which the beam propagates
-    profile = None      # Gaussian transverse profile at reference plane
+    space = None        # Space in which the beam propagates.
+    profile = None      # Gaussian transverse profile at reference plane 
+                        # in the space.
     
     def __init__(self, space=None, profile=None):
         """Creates a Beam with the given GaussianProfile in the given Space."""
@@ -131,7 +143,10 @@ class Beam:
         raise NotImplementedError("Should be implemented in derived classes")
 
     def get_profile(self, z):
-        """Return GaussianProfile at position 'z'."""
+        """Return GaussianProfile at position 'z'.
+        
+        'z' : number or array, position with respect to the reference.
+        """
         return GaussianProfile(self.get_Q(z))        
 
     def change_origin(self, z):
@@ -139,7 +154,7 @@ class Beam:
         self.set_profile(self.get_profile(z))
         
     def evolution(self, z1=0.0, z2=0.0):
-        """Return the evolution of w as a function of z.
+        """Return the evolution of 'w' as a function of 'z'.
         
         Returns : [Z,W] 
         where Z = linspace(z1,z2) and W contains the corresponding waist.
@@ -150,7 +165,7 @@ class Beam:
 
     
 class BeamInHomogeneousSpace(Beam):
-    """Gaussian beam in a homogeneous material of refractive index 'n'.
+    """Gaussian beam in a homogeneous material with refractive index 'n'.
 
     In a homogeneous material, the profile is characterized by the 
     Gaussian parameter 'q'. The paraxial propagation is
@@ -165,22 +180,22 @@ class BeamInHomogeneousSpace(Beam):
          = exp(-ik r²/(2R) - r²/w²)
     
     With    k = k0 * n
-            q = Q * n
+            q(z) = Q(z) * n
             1/q = 1/R - iλ/(πw²)
     
-    R is the radius of curvature (positive when center is on the left)
+    R(z) is the radius of curvature (positive when the center is on the left)
             
-    At a material interface between homogeneous materials, the quantity Q = q/n
-    is identical on both sides.
+    At a material interface between homogeneous materials, the 
+    reduced gaussian parameter Q = q/n is identical on both sides.
     """
     
-    waist_position = None   # waist position
+    waist_position = None   # waist position [m]
     waist_profile = None    # Gaussian transverse profile at waist
-    zR = None               # Rayleigh range
+    zR = None               # Rayleigh range in the space
     divergence = None       # Half divergence angle (1/e²) [rad]
     
     def set_beam(self):
-        """Build the Gaussian beam"""
+        """Build the beam in our HomogeneousSpace."""
         n = self.space.n
         q = self.profile.Q * n
         self.zR = q.imag
@@ -195,7 +210,7 @@ class BeamInHomogeneousSpace(Beam):
     def plot(self, z1=0.0, z2=0.0):
         """Plot beam waist."""
         pyplot.figure()
-        pyplot.title("Beam waist radius in homogeneous space")
+        pyplot.title("Beam radius at 1/e² intensity")
         pyplot.axvline(0)
         pyplot.axhline(0)
         pyplot.xlabel("z (um)")
@@ -207,16 +222,17 @@ class BeamInHomogeneousSpace(Beam):
 class BeamInGradientIndex(Beam):
     """Beam in a gradient index fiber
     
-    A gradient index fiber has a refractive index profile like
+    A gradient index fiber has a refractive index profile given by
         n(r) = n₀(1 - A/2 r²)
   
     If we define g ≡ √(A), the evolution of a beam is
         Q(z) = 1/(n g) tan(gz + theta)
     
-    Spatial pulsation of a ray : g
-    Spatial period for ray : P = 2 pi/g
-    Spatial period for Gaussian beam : P/2 = pi/g
+    Spatial pulsation for one imaginary ray : g
+    Spatial period for the imaginary ray : P = 2 pi/g
+    Spatial period for the shape of the Gaussian beam : P/2 = pi/g
    
+    Note :
     Im(Q(z)) = 1/(n g) sh(θ") ch(θ") / (cos²(gz+θ') + sh²(θ"))
     C = Re(1/Q(z)) = n g (sin(gz+θ') cos(gz+θ')) / (sin²(gz+θ') + sh²(θ"))
     """
@@ -226,7 +242,7 @@ class BeamInGradientIndex(Beam):
     w_min = w_max = None
 
     def set_beam(self):
-        """Build the GI beam"""
+        """Build the beam in our GradientIndexFiber."""
         g = self.space.gamma
         n = self.space.n
         theta = arctan(g * n * self.profile.Q)
@@ -265,14 +281,26 @@ class Space:
         """Returns propagator for length L."""
         raise NotImplementedError("Should be implemented in derived classes")
         
-    def propagate(self, Q, L):
+    def propagate_Q(self, Q, L):
         """Propagates GaussianProfile Q over length L."""
         raise NotImplementedError("Should be implemented in derived classes")
-        
-    def beam(self, Q=None):
-        """Returns a GaussianBeam defined by a GaussianProfile."""
+       
+    def beam(self, p=None):
+        """Returns a GaussianBeam defined by a GaussianProfile.
+
+        p : GaussianProfile object or reduced curvature Q
+        """
         raise NotImplementedError("Should be implemented in derived classes")
-        
+ 
+    def propagate(self, p, L):
+        """Propagates GaussianProfile 'p' over length L.
+
+        Return : GaussianProfile after propagation
+        """
+        Q_L = self.propagate_Q(p.Q, L)
+        return GaussianProfile(Q_L)
+
+       
 class HomogeneousSpace(Space):
     """A homogeneous space of refractive index 'n'."""
     
@@ -289,31 +317,34 @@ class HomogeneousSpace(Space):
         M[0,1] = L / n
         return Propagator(M,n,n)
         
-    def propagate(self, Q, L):
+    def propagate_Q(self, Q, L):
         """Propagate over length L.
         
-        Q : reduced Gaussian parameter of the GaussianProfile to propagate
+        Q : reduced Gaussian parameter to propagate
+
+        Return : Q after propagation
         """
         return Q + L/self.n
-        
-    def beam(self, Q=None):
+
+    def beam(self, p=None):
         """Return a GaussianBeam"""
-        return BeamInHomogeneousSpace(self, GaussianProfile(Q))
+        if not isinstance(p, GaussianProfile):
+            p = GaussianProfile(p)
+        return BeamInHomogeneousSpace(self, p)
 
     
 class GradientIndexFiber(Space):
     """MultiMode Fiber"""
     
-    # MMF fiber parameters    
-    n = n0
+    # MMF fiber parameters:
+    n = None
     gamma = 5.7e3       # spatial pulsation [m⁻¹]
-    diam = 62.5e-6      # core diameter     
+    diam = 62.5e-6      # core diameter     [m]
     
-    P = 2*pi/gamma      # spatial period for a ray [m] (= 1.1 mm)
+    P = 2*pi/gamma      # spatial period for a ray [m] 
     # For a Gaussian beam, what matters is the half-period P/2 = pi/gamma
-    # Typical value, P/2 = 550 µm
+    # Typical value: P = 1.1 mm and P/2 = 550 µm
 
-    
     def __init__(self, n=n0, gamma=5.7e3, diam=None):
         """Defines a MMF"""
         self.n = n
@@ -330,22 +361,27 @@ class GradientIndexFiber(Space):
                          [-n*g * sin(g*z) , cos(g*z)           ]])
         return Propagator(M,n,n)
         
-    def propagate(self, Q, L):
-        """Propagate profile Q over length L"""
-        n = self.n
-        return 1/n*self.propagator(L).propagate(Q*n)
+    def propagate_Q(self, Q, L):
+        """Propagate profile Q over length L
 
-    def beam(self, Q=None):
+        Return : Q after propagation
+        """
+        n = self.n
+        return 1/n*self.propagator(L).propagate_q(Q*n)
+
+    def beam(self, p=None):
         """Return a Gradient Index Beam"""
-        return BeamInGradientIndex(self, GaussianProfile(Q))
+        if not isinstance(p, GaussianProfile):
+            p = GaussianProfile(p)
+        return BeamInGradientIndex(self, p)
         
             
     
 class SingleModeFiber:
     """Optical Fiber"""
     
-    n = None            # fiber refractive index (cladding)
-    w = None            # mode radius 1/e² [m]
+    n = None            # refractive index of the fiber cladding
+    w = None            # mode radius at 1/e² [m]
     profile = None      # Gaussian profile of the mode
  
     def __init__(self, w=5.2e-6, n=n0):
@@ -367,26 +403,105 @@ class Propagator:
     n2 = 1.0                # Refraction index for output medium
     
     def __init__(self, M, n1=1.0, n2=1.0):
-        """Creates a propagator from ABCD matrix."""
+        """Creates a propagator from the given ABCD matrix."""
         self.n1 = n1
         self.n2 = n2
         self.M = M
         
-    def propagate(self, q1):
+    def propagate_q(self, q1):
         """Returns value of q2 for the given q1 by applying ABCD matrix."""
         [[A,B],[C,D]] = self.M
         (n1, n2) = (self.n1, self.n2)
         q2 = n2 * (A * (q1/n1) + B) / (C * (q1/n1) + D)
         return q2    
 
+class OpticalElement:
+    """Optical elements affecting a wavefront."""
+
+    def transform_Q(self, Q1):
+        """Transform GaussianProfile Q through that OpticalElement."""
+        raise NotImplementedError("Should be implemented in derived classes")
+
+    def transform(self, p):
+        """Transform GaussianProfile that OpticalElement.
+
+        See transform_Q() for more information.
+        """
+        return GaussianProfile(self.transform_Q(p.Q))
+
+class Diopter(OpticalElement):
+    """Refracting surface : n1 | n2, with curvature.
+
+    S = Apex of the diopter   C = Center of curvature
+
+    R = SC (sign is negative when C is at the left of S)
+    """
+
+    c = None        # surface curvature [m⁻¹]
+
+    def __init__(self, n1=1.0, n2=1.0, R=None, c=0):
+        """Create a Diopter object with curvature
+
+        R = SC      radius of curvature [m]
+        c = 1/SC    curvature [m⁻¹]
+        """
+        if isinstance(n1, Space):
+            self.n1 = n1.n
+        else:
+            self.n1 = n1
+
+        if isinstance(n2, Space):
+            self.n2 = n2.n
+        else:
+            self.n2 = n2
+
+        if R is not None:
+            self.c = 1/R
+        else:
+            self.c = c
+
+    def transform_Q(self, Q1):
+        """Transform GaussianProfile Q1 through that Diopter.
+
+        F  : object focal point      F' : image focal point
+        f = SF  = -n/(n'-n) SC       f' = SF' = n'/(n'-n) SC
+
+        1/Q - 1/Q' = n/q - n'/q' = -n/f = n'/f'
+
+        Return : Q after the Diopter
+        """
+        n1, n2 = self.n1, self.n2
+
+        f = -n1 / (n2 - n1) / self.c
+        Q2 = 1 / (1/Q1 + n1/f)
+        return Q2
+
+class Lens(OpticalElement):
+    """Lens of image focal distance 'f'."""
+
+    def __init__(self, f):
+        """Create a lens with image focal distance 'f'."""
+        self.f = f
+
+    def transform(self, Q1):
+        """Transform the GaussianProfile Q1 through that Lens.
+
+        1/Q - 1/Q' = 1/f
+
+        Return : GaussianProfile after the Lens
+        """
+        f = self.f
+
+        Q2 = 1 / (1/Q1 - 1/f)
+        return Q2
+
 
 class Gradissimo:
     """Gradissimo fiber
     
     Geometry of a Gradissimo fiber:
-                        
             
-          input_fiber    HS       GI         OUT
+               IF         HS       GI         OUT
         ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁    
         ▁▁▁▁▁▁▁▁▁▁▁▁▁          |         |         
                      |  L_HS   |  L_GI   |   L_OUT |   
@@ -394,49 +509,49 @@ class Gradissimo:
         ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔                     
                      Q0        Q1        Q2       Q3
 
-    Available attributes...
+    Attributes...
     - Reduced Gaussian parameters : Q0, Q1, Q2, Q3
     - Section lengths : L_HS, L_GI, L_OUT
     - Beams : beam_HS, beam_GI, beam_OUT
     """
     
-    input_fiber = None      # SingleModeFiber
-    HS = None               # HomogeneousSpace
-    GI = None               # GradientIndexFiber
-    OUT = None              # HomogeneousSpace
+    IF = None       # SingleModeFiber       (input fiber)
+    HS = None       # HomogeneousSpace      (homogeneous fiber)
+    GI = None       # GradientIndexFiber    (GI fiber)
+    OUT = None      # HomogeneousSpace      (output space)
 
     Q0 = Q1 = Q2 = Q3 = None
     L_HS = L_GI = L_OUT = None
     beam_HS = beam_GI = beam_OUT = None
 
-    def __init__(self, input_fiber, HS, GI, OUT):
+    def __init__(self, IF, HS, GI, OUT):
         """Create a Gradissimo fiber"""
-        self.input_fiber = input_fiber
+        self.IF = IF
         self.HS = HS
         self.GI = GI
         self.OUT = OUT
         
     def set_geometry(self, L_HS, L_GI):
-        """Return output beam"""
+        """Calculate the characteristics of the beams."""
         self.L_HS = L_HS
         self.L_GI = L_GI
-        self.Q0 = self.input_fiber.profile.Q
+        self.Q0 = self.IF.profile.Q
         
         self.beam_HS = self.HS.beam(self.Q0)
         self.Q1 = self.beam_HS.get_Q(L_HS)
         # Equivalent to
-        # self.Q1 = self.HS.propagate(self.Q0, L_HS)
+        # self.Q1 = self.HS.propagate_Q(self.Q0, L_HS)
         
         self.beam_GI = self.GI.beam(self.Q1)
         self.Q2 = self.beam_GI.get_Q(L_GI)
         # Equivalent to
-        # self.Q2 = self.GI.propagate(self.Q1, L_GI)
+        # self.Q2 = self.GI.propagate_Q(self.Q1, L_GI)
         
         self.beam_OUT = self.OUT.beam(self.Q2)
         self.L_OUT = self.beam_OUT.waist_position
         self.Q3 = self.beam_OUT.waist_profile.Q
         # Equivalent to
-        # self.Q3 = self.OUT.propagate(self.Q2, self.L_OUT)
+        # self.Q3 = self.OUT.propagate_Q(self.Q2, self.L_OUT)
         
         
     def adjust_geometry(self, w_OUT=None, L_OUT=None, Q2=None, oscillations=0):
@@ -462,17 +577,17 @@ class Gradissimo:
             self.beam_OUT.change_origin(-L_OUT)
             self.Q2 = self.beam_OUT.profile.Q
             # Equivalent to
-            # self.Q2 = self.OUT.propagate(self.Q3, -L_OUT)
+            # self.Q2 = self.OUT.propagate_Q(self.Q3, -L_OUT)
         
         # Find the length of the GI segment...
         self.beam_GI = self.GI.beam(self.Q2)
-        self.Q0 = self.input_fiber.profile.Q
+        self.Q0 = self.IF.profile.Q
         z1 = self.beam_GI.find_imag(self.Q0, C=+1, steps=-1-oscillations)
         self.beam_GI.change_origin(z1)
         self.L_GI = -z1
         self.Q1 = self.beam_GI.profile.Q
         # Equivalent to
-        # self.Q1 = self.GI.propagate(Q2, z1)
+        # self.Q1 = self.GI.propagate_Q(Q2, z1)
         
         # Find the length of the HS segment...
         self.beam_HS = self.HS.beam(self.Q1)
@@ -506,4 +621,7 @@ class Gradissimo:
         pyplot.plot(L_HS + L_GI + Z3, W3)
     
 
-
+if __name__ == "__main__":
+    print("Example of use...")
+    set_wavelength(1.3e-6)          # Wavelength [m]
+    

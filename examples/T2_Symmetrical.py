@@ -2,6 +2,8 @@
 # encoding: utf-8
 
 from gradissimo import *
+from numpy import pi, inf, sqrt, cos, sin, sinh, cosh, tanh, arccos, arctan
+from matplotlib import pyplot
 
 ##############################################################################
 # Consider a symmetrical situation, L_silica / L_GI / L_silica 
@@ -32,15 +34,15 @@ q1 = q0 + L_silica
 # The value of γ (gamma) is taken such that P/4 = 365 µm 
 # [value from US patent 6014483]
 gamma = 2*pi/(4*365e-6)     
-theta = numpy.arctan(gamma * q1)    # Complex value
+theta = arctan(gamma * q1)    # Complex value
 
 # Because the situation is symmetrical, the waist is maximal at the middle of 
 # the GI segment, and this corresponds to Re(γz + θ) = (k + ½) π
 L_GI = 2 * (pi/2 - theta.real) / gamma
 print("GI segment length...")
 print("- direct     calculation : {:.3e} m".format(L_GI), end="")
-w_max = sqrt(lbda/(gamma * pi * numpy.tanh(theta.imag)))
-w_min = sqrt(lbda * numpy.tanh(theta.imag) / (gamma * pi))
+w_max = sqrt(lbda/(gamma * pi * tanh(theta.imag)))
+w_min = sqrt(lbda * tanh(theta.imag) / (gamma * pi))
 print(" / w_max={:.2e}, w_min={:.2e}".format(w_max, w_min))
 # We get L_GI = 482.1 µm, w_max = 14.7 µm, w_min = 4.55 µm
 

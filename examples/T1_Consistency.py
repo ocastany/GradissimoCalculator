@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 from gradissimo import *
+from matplotlib import pyplot
 
 # Test of consistency 
 # We create a Gradissimo fiber with segments of defined length and we calculate
