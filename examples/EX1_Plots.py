@@ -2,6 +2,8 @@
 # encoding: utf-8
 
 from gradissimo import *
+import numpy
+from matplotlib import pyplot
 
 # Study of Gradissimo fibers and comparison with reference articles
 # [1] P. Chanclou, JLT, 17(5), p. 924 (1999)
@@ -15,7 +17,7 @@ from gradissimo import *
 # n = 1.447 @ 1.3 µm                    [1]
 #     1.469 @ 1.55 µm
 
-# We will reproduce figures 5 and 6 from [1]
+# We will reproduce figures 5 and 6 from reference [1]
 
 # Define the wavelength and the materials
 set_wavelength(1.3e-6)
@@ -31,7 +33,7 @@ G = Gradissimo(input_fiber, HS, GI, OUT)
 
 # Segment lengths to be used
 L_HS_list = [0, 200, 400, 600]
-L_GI_list = linspace(0, 800, num=200)
+L_GI_list = numpy.linspace(0, 800, num=200)
 
 data_list = []
 for (i, L_HS) in enumerate(L_HS_list):
