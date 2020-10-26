@@ -228,9 +228,9 @@ class BeamInGradientIndex(Beam):
     where we defined g ≡ √(A). The evolution of a beam is
         Q(z) = 1/(n g) tan(gz + theta)
     
-    Spatial pulsation for one imaginary ray : g
-    Spatial period for the imaginary ray : P = 2 pi/g
-    Spatial period for the shape of the Gaussian beam : P/2 = pi/g
+    Spatial pulsation for ray optics: g
+    Spatial period for ray optics: P = 2 pi/g
+    Spatial period for the shape of the Gaussian beam: P/2 = pi/g
    
     Note :
     Im(Q(z)) = 1/(n g) sh(θ") ch(θ") / (cos²(gz+θ') + sh²(θ"))
@@ -336,11 +336,11 @@ class HomogeneousSpace(Space):
 class GradientIndexFiber(Space):
     """GRIN fiber (MultiMode Fiber)
 
-    Refractive index profile : n(r) = n₀(1 - A/2 r²) = n₀(1 - 1/2 g² r²)
+    Refractive index profile : n(r) = n₀(1 - 1/2 g² r²)
     """
     
     # MMF fiber parameters:
-    n = None
+    n = 1.471           # refractive index at the central point
     gamma = 5.7e3       # spatial pulsation [m⁻¹]
     diam = 62.5e-6      # core diameter     [m]
     
@@ -348,12 +348,16 @@ class GradientIndexFiber(Space):
     # For a Gaussian beam, what matters is the half-period P/2 = pi/gamma
     # Typical value: P = 1.1 mm and P/2 = 550 µm
 
-    def __init__(self, n=n0, gamma=5.7e3, diam=None):
+    def __init__(self, n=1.469, gamma=None, diam=None, n_cl=None):
         """Defines a MMF"""
         self.n = n
-        self.gamma = gamma
-        self.P = 2*pi/gamma
         self.diam = diam
+        if gamma is not None:
+            self.gamma = gamma
+        elif n_cl is not None:
+            self.gamma = sqrt(2 * (n - n_cl)/n) / (diam/2)
+            
+        self.P = 2*pi/self.gamma
         
     def propagator(self, L):
         """Propagator for length L"""
@@ -378,8 +382,14 @@ class GradientIndexFiber(Space):
             p = GaussianProfile(p)
         return BeamInGradientIndex(self, p)
         
-            
+    def get_index(self, r=0):
+        """Return refractive index at radius 'r'."""
+        if r > self.diam/2:
+            r = self.diam/2
+        n = self.n * (1 - 1/2 * (self.gamma * r)**2)
+        return n
     
+
 class SingleModeFiber:
     """Optical Fiber"""
     
@@ -627,4 +637,5 @@ class Gradissimo:
 if __name__ == "__main__":
     print("Example of use...")
     set_wavelength(1.3e-6)          # Wavelength [m]
-    
+    # See example file EX0
+
