@@ -14,8 +14,8 @@ from matplotlib import pyplot
 #                  4117 m⁻¹ @ 1.55 µm   [2]
 
 # Refractive index of silica
-# n = 1.447 @ 1.3 µm                    [1]
-#     1.469 @ 1.55 µm
+# n = 1.447 @ 1.3 µm
+#     1.444 @ 1.55 µm
 
 # We will reproduce figures 5 and 6 from reference [1]
 
@@ -25,7 +25,7 @@ n_fiber = 1.447
 n_out = 1.000
 input_fiber = SingleModeFiber(w=5.0e-6, n=n_fiber)
 HS = HomogeneousSpace(n_fiber)
-GI = GradientIndexFiber(n_fiber, gamma=4294, diam=85e-6)
+GI = GradientIndexFiber(1.471, gamma=4294, diam=85e-6)
 OUT = HomogeneousSpace(n_out)
 
 # Gradissimo fiber structure...
@@ -60,9 +60,9 @@ pyplot.title("Working distance for various lengths of silica (L_HS)")
 for (i, L_HS) in enumerate(L_HS_list):
     pyplot.plot(L_GI_list, data[i,:,1], label="L_HS = {:} µm".format(L_HS))
 pyplot.xlabel("Gradient index segment length (GI 85/125) (µm)")
-pyplot.axhline(color="k")
 pyplot.ylabel("Working distance (µm)")
 pyplot.ylim(ymin=0)
+pyplot.xlim(0,800)
 pyplot.legend()
 
 pyplot.show()

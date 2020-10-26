@@ -18,7 +18,7 @@ The geometry of a Gradissimo fiber is this:
 * OUT = Output Space, typically air
 
 --
-As an example, file `T4_Plots.py` reproduces figures 5 and 6 from [this reference][1].
+As an example, file `EX1_Plots.py` reproduces figures 5 and 6 from [this reference][1].
 
 ![Reproduction of figure 5 from reference 1](examples/figure/ref_1_figure_5.png)
 

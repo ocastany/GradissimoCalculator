@@ -16,9 +16,9 @@ from matplotlib import pyplot
 
 lbda0 = None    # Wavelength in vacuum, for example 1.31e-6 m
                 # Set to None, so that the user does not forget to set it.
-n0 = 1.45       # Refractive indices of silica / silicon
-                # 1.31 µm : 1.447 / 3.500
-                # 1.55 µm : 1.444 / 3.476
+n0 = 1.45   # For reference, the refractive indices of silicon and silica are
+            # Si   : 3.500 @ 1.31 µm, 3.476 @ 1.55 µm
+            # SiO2 : 1.447 @ 1.31 µm, 1.444 @ 1.55 µm 
 
 def set_wavelength(lbda):
     """Set the vacuum wavelength for subsequent calculations"""
@@ -220,12 +220,12 @@ class BeamInHomogeneousSpace(Beam):
 
 
 class BeamInGradientIndex(Beam):
-    """Beam in a gradient index fiber
+    """Beam in a gradient index (GRIN) fiber
     
     A gradient index fiber has a refractive index profile given by
-        n(r) = n₀(1 - A/2 r²)
-  
-    If we define g ≡ √(A), the evolution of a beam is
+        n(r) = n₀(1 - A/2 r²) = n₀(1 - 1/2 g² r²),
+
+    where we defined g ≡ √(A). The evolution of a beam is
         Q(z) = 1/(n g) tan(gz + theta)
     
     Spatial pulsation for one imaginary ray : g
@@ -334,7 +334,10 @@ class HomogeneousSpace(Space):
 
     
 class GradientIndexFiber(Space):
-    """MultiMode Fiber"""
+    """GRIN fiber (MultiMode Fiber)
+
+    Refractive index profile : n(r) = n₀(1 - A/2 r²) = n₀(1 - 1/2 g² r²)
+    """
     
     # MMF fiber parameters:
     n = None
