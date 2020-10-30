@@ -31,7 +31,7 @@ OUT = HomogeneousSpace(n_out)
 # Gradissimo fiber structure...
 G = Gradissimo(input_fiber, HS, GI, OUT)
 
-# Segment lengths to be used
+# Segment lengths to consider
 L_HS_list = [0, 200, 400, 600]
 L_GI_list = numpy.linspace(0, 800, num=200)
 
@@ -46,7 +46,7 @@ for (i, L_HS) in enumerate(L_HS_list):
 
 data = numpy.array(data_list)
 
-# Trace the plots
+# Plotting...
 pyplot.figure()
 pyplot.title("Waist diameter for various lengths of silica (L_HS)")
 for (i, L_HS) in enumerate(L_HS_list):
