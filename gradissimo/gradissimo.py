@@ -537,17 +537,24 @@ class Gradissimo:
     L_HS = L_GI = L_OUT = None
     beam_HS = beam_GI = beam_OUT = None
 
-    def __init__(self, IF, HS, GI, OUT):
-        """Create a Gradissimo fiber"""
-        self.IF = IF
-        self.HS = HS
-        self.GI = GI
-        self.OUT = OUT
+    def __init__(self, IF, HS, GI, OUT, L_HS=None, L_GI=None):
+        """Create a Gradissimo fiber."""
+        self.IF = IF ; self.HS = HS ; self.GI = GI ; self.OUT = OUT
+        self.set_geometry(L_HS, L_GI)
         
-    def set_geometry(self, L_HS, L_GI):
+    def set_geometry(self, L_HS=None, L_GI=None):
         """Calculate the characteristics of the beams."""
-        self.L_HS = L_HS
-        self.L_GI = L_GI
+        if L_HS is None:
+            L_HS = self.L_HS
+        else:
+            self.L_HS = L_HS
+        if L_GI is None:
+            L_GI = self.L_GI
+        else:
+            self.L_GI = L_GI
+        if (L_HS is None) or (L_GI is None):
+            return      # Give up because Gradissimo fiber is not fully defined
+
         self.Q0 = self.IF.profile.Q
         
         self.beam_HS = self.HS.beam(self.Q0)
