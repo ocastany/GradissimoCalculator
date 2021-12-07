@@ -3,7 +3,7 @@ GradissimoCalculator
 
 Python code for the calculation of Gaussian beams and application to Gradissimo fibers.
 
-The geometry of a Gradissimo fiber is the following:
+Geometry of a Gradissimo fiber:
 
           input_fiber    HS       GI         OUT
         _________________________________
@@ -17,18 +17,15 @@ The geometry of a Gradissimo fiber is the following:
 * GI = Gradient Index Fiber
 * OUT = Output Space, typically air
 
---
 As an example, file `EX1_Plots.py` reproduces figures 5 and 6 from [this reference][1].
 
 ![Reproduction of figure 5 from reference 1](examples/figure/ref_1_figure_5.png)
 
 [1]: https://www.osapublishing.org/jlt/abstract.cfm?uri=jlt-17-5-924
 
--- 
 The project can be downloaded with `git clone git://github.com/ocastany/GradissimoCalculator.git`.
 The directory `GradissimoCalculator/gradissimo` should be included in the Python module search path for an easy import.
 
---
 Copyright (C) 2020 Olivier Castany
 
 This program is free software: you can redistribute it and/or modify
