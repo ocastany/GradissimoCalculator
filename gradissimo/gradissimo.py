@@ -485,8 +485,8 @@ class Diopter(OpticalElement):
         """
         n1, n2 = self.n1, self.n2
 
-        f = -n1 / (n2 - n1) / self.c
-        Q2 = 1 / (1/Q1 + n1/f)
+        inv_f = -(n2 - n1) / n1 * self.c
+        Q2 = 1 / (1/Q1 + n1*inv_f)
         return Q2
 
 class Lens(OpticalElement):
