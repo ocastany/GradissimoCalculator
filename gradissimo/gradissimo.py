@@ -90,7 +90,7 @@ class GaussianProfile:
         self.a = 1j*pi / (lbda0 * Q)
 
     def set_Geometry(self, w, C):
-        """Define profile by waist 'w' and reduced curvature 'C'.
+        """Define profile by radius 'w' and reduced curvature 'C'.
         
         E(r) = exp(-ik0 C r²/2 - r²/w²)
         """
@@ -157,7 +157,8 @@ class Beam:
         """Return the evolution of 'w' as a function of 'z'.
         
         Returns : [Z,W] 
-        where Z = linspace(z1,z2) and W contains the corresponding waist.
+        where Z = linspace(z1,z2) 
+              W = values of the radius at 1/e².
         """
         Z = linspace(z1,z2)
         W = self.get_profile(Z).w
@@ -208,7 +209,7 @@ class BeamInHomogeneousSpace(Beam):
         return self.profile.Q + z/self.space.n
 
     def plot(self, z1=0.0, z2=0.0):
-        """Plot beam waist."""
+        """Plot beam radius versus position."""
         pyplot.figure()
         pyplot.title("Beam radius at 1/e² intensity")
         pyplot.axvline(0)
@@ -398,7 +399,7 @@ class SingleModeFiber:
     profile = None      # Gaussian profile of the mode
  
     def __init__(self, w=5.2e-6, n=n0):
-        """Create a single mode fiber with given waist.
+        """Create a single-mode fiber with given mode radius.
         
         'w' : mode radius (1/e²) [m]
         'n' : refractive index of the fiber
@@ -617,12 +618,12 @@ class Gradissimo:
         
     
     def plot(self):
-        """Plot the beam waist along the gradissimo fiber.
+        """Plot the beam radius along the gradissimo fiber.
         
         If needed, use pyplot.show() to show the plot.
         """
         pyplot.figure()
-        pyplot.title("Gradissimo beam waist radius")
+        pyplot.title("Gradissimo beam radius")
         pyplot.axvline(0)
         pyplot.axhline(0)
         pyplot.xlabel("z (um)")
