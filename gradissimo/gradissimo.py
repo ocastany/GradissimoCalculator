@@ -9,7 +9,7 @@ Usage: see at the bottom of this page.
 """
 
 import numpy, cmath
-from numpy import pi, inf, sqrt, cos, sin, sinh, cosh, tanh, arccos 
+from numpy import pi, inf, sqrt, cos, sin, sinh, cosh, tanh, arccos, real, imag
 from numpy import arctan, tan, linspace
 from scipy import optimize
 from matplotlib import pyplot
@@ -111,6 +111,15 @@ class GaussianProfile:
         """Return the beam created by this profile in space 's'."""
         return s.beam(self)
 
+    @property
+    def diameter(self):
+        """Beam diameter at 1/e² intensity."""
+        return 2*self.w
+    
+    def R(self, n):
+        """Radius of curvature in a medium of refractive index 'n'."""
+        return n / self.C
+
 
 class Beam:
     """Abstract class for a gaussian beam in a certain space."""
@@ -171,7 +180,7 @@ class BeamInHomogeneousSpace(Beam):
     In a homogeneous material, the profile is characterized by the 
     Gaussian parameter 'q'. The paraxial propagation is
         
-        E(z,r) = exp(-ikz) exp(-ikr²/(2 q(z)))    
+        E(z,r) = exp(-ikz) exp(-ikr²/(2 q(z)))
     
     with the propagation law q(z) = q(0) + z.
    
@@ -185,6 +194,9 @@ class BeamInHomogeneousSpace(Beam):
             1/q = 1/R - iλ/(πw²)
     
     R(z) is the radius of curvature (positive when the center is on the left)
+    
+    The Rayleigh length is zR = Im(q(0)) = π w₀²/λ
+    The half angle divergence is λ / (π w₀)
             
     At a material interface between homogeneous materials, the 
     reduced gaussian parameter Q = q/n is identical on both sides.
@@ -202,11 +214,17 @@ class BeamInHomogeneousSpace(Beam):
         self.zR = q.imag
         self.waist_profile = GaussianProfile(1j * self.profile.Q.imag)
         self.waist_position = -q.real
-        self.divergence = lbda0 / (pi * n * self.waist_profile.w)
+        self.divergence = lbda0/n / (pi * self.waist_profile.w)
     
     def get_Q(self, z):
         """Return Q value at position 'z'."""
         return self.profile.Q + z/self.space.n
+        
+    def get_R(self, z):
+        """Return R value at position 'z'."""
+        Q = self.get_Q(z)
+        n = self.space.n
+        return n / real(1/Q)
 
     def plot(self, z1=0.0, z2=0.0):
         """Plot beam radius versus position."""
@@ -436,28 +454,30 @@ class OpticalElement:
         """Transform GaussianProfile Q through that OpticalElement."""
         raise NotImplementedError("Should be implemented in derived classes")
 
-    def transform(self, p):
-        """Transform GaussianProfile that OpticalElement.
+    def transform(self, profile):
+        """Transform GaussianProfile 'profile' through that OpticalElement.
 
         See transform_Q() for more information.
         """
-        return GaussianProfile(self.transform_Q(p.Q))
+        return GaussianProfile(self.transform_Q(profile.Q))
+
 
 class Diopter(OpticalElement):
-    """Refracting surface : n1 | n2, with curvature.
+    """Refracting surface n1 | n2, with radius of curvature R = SC
 
-    S = Apex of the diopter   C = Center of curvature
-
-    R = SC (sign is negative when C is at the left of S)
+    S = Apex of the diopter   
+    C = Center of curvature
+    The sign is negative when C is at the left of S.
     """
 
-    c = None        # surface curvature [m⁻¹]
+    R = None        # Radius of curvature [m]
+    c = None        # Surface curvature [m⁻¹]
 
-    def __init__(self, n1=1.0, n2=1.0, R=None, c=0):
+    def __init__(self, n1=1.0, n2=1.0, R=inf, c=None):
         """Create a Diopter object with curvature
 
-        R = SC      radius of curvature [m]
-        c = 1/SC    curvature [m⁻¹]
+        R = SC      Radius of curvature [m]
+        c = 1/SC    Curvature [m⁻¹]
         """
         if isinstance(n1, Space):
             self.n1 = n1.n
@@ -469,10 +489,16 @@ class Diopter(OpticalElement):
         else:
             self.n2 = n2
 
-        if R is not None:
-            self.c = 1/R
+        if c is not None:
+            if c == 0:
+                self.R = inf
+                self.c = 0
+            else:
+                self.R = 1/c
+                self.c = c
         else:
-            self.c = c
+            self.R = R
+            self.c = 1/R
 
     def transform_Q(self, Q1):
         """Transform GaussianProfile Q1 through that Diopter.
@@ -485,7 +511,6 @@ class Diopter(OpticalElement):
         Return : Q after the Diopter
         """
         n1, n2 = self.n1, self.n2
-
         inv_f = -(n2 - n1) / n1 * self.c
         Q2 = 1 / (1/Q1 + n1*inv_f)
         return Q2
@@ -493,23 +518,60 @@ class Diopter(OpticalElement):
 class Lens(OpticalElement):
     """Lens of image focal distance 'f'."""
 
-    def __init__(self, f):
-        """Create a lens with image focal distance 'f'."""
+    def __init__(self, n=n0, f=inf):
+        """Create a lens with IMAGE focal distance 'f' in medium 'n'."""
         self.f = f
+        if isinstance(n, Space):
+            self.n = n.n
+        else:
+            self.n = n
 
-    def transform(self, Q1):
+    def transform_Q(self, Q1):
         """Transform the GaussianProfile Q1 through that Lens.
 
-        1/Q - 1/Q' = 1/f
+        1/Q - 1/Q' = n/f
 
         Return : GaussianProfile after the Lens
         """
         f = self.f
+        n = self.n
 
-        Q2 = 1 / (1/Q1 - 1/f)
+        Q2 = 1 / (1/Q1 - n/f)
         return Q2
 
+class Mirror(OpticalElement):
+    """Mirror with RADIUS OF CURVATURE R = SC
+    
+    S = Apex of the diopter   
+    C = Center of curvature
+    The sign is R > 0 for a diverging mirror.
+    
+    The OBJECT focal length is f = R/2    
+    The propagation axis is reversed after the reflection.
+    """
+    
+    def __init__(self, n=n0, R=inf):
+        """Create a mirror with radius of curvature 'R' in medium 'n'."""
+        self.R = R
+        self.f = R/2
+        if isinstance(n, Space):
+            self.n = n.n
+        else:
+            self.n = n
 
+    def transform_Q(self, Q1):
+        """Transform the GaussianProfile Q1 through that Mirror.
+        
+        1/q - 1/q'  = -1/f
+        1/Q - 1/Q'  = -n/f
+        """
+        f = self.f
+        n = self.n
+
+        Q2 = 1 / (1/Q1 + n/f)
+        return Q2
+        
+        
 class Gradissimo:
     """Gradissimo fiber
     
